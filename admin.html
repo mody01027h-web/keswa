@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة رفع منتجات Keswa</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 20px; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; }
+        input, select { background: #2d2d2d; color: #fff; }
+        button { background: #22c55e; color: #fff; font-weight: bold; cursor: pointer; }
+        button:hover { background: #16a34a; }
+        #status { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>رفع صور Keswa 🚀</h2>
+        <input type="password" id="token" placeholder="أدخل GitHub Personal Access Token">
+        <select id="imageName">
+            <option value="p1.png">صورة المنتج الأول (p1)</option>
+            <option value="p2.png">صورة المنتج الثاني (p2)</option>
+            <option value="p3.png">صورة المنتج الثالث (p3)</option>
+            <option value="p4.png">صورة المنتج الرابع (p4)</option>
+        </select>
+        <input type="file" id="imageFile" accept="image/*">
+        <button onclick="uploadImage()">رفع وتحديث الموقع</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        async function uploadImage() {
+            const token = document.getElementById('token').value.trim();
+            const filename = document.getElementById('imageName').value;
+            const fileInput = document.getElementById('imageFile');
+            const status = document.getElementById('status');
+
+            if (!token || fileInput.files.length === 0) {
+                status.style.color = '#ef4444';
+                status.innerText = 'الرجاء إدخال الـ Token واختيار الصورة!';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            status.style.color = '#facc15';
+            status.innerText = 'جاري الرفع... ⏳';
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async function () {
+                const base64Content = reader.result.split(',')[1];
+                const repo = 'mody01027h-web/keswa';
+                const path = `images/${filename}`;
+                const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+                try {
+                    // 1. Check if file exists to get its sha
+                    let sha = null;
+                    const getRes = await fetch(url, {
+                        headers: { 'Authorization': `token ${token}` }
+                    });
+                    if (getRes.ok) {
+                        const fileData = await getRes.json();
+                        sha = fileData.sha;
+                    }
+
+                    // 2. Upload/Update file
+                    const bodyData = {
+                        message: `Upload ${filename} via Admin Panel`,
+                        content: base64Content
+                    };
+                    if (sha) bodyData.sha = sha;
+
+                    const putRes = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(bodyData)
+                    });
+
+                    if (putRes.ok) {
+                        status.style.color = '#22c55e';
+                        status.innerText = '✅ تم رفع الصورة وتحديث الموقع بنجاح!';
+                    } else {
+                        const errData = await putRes.json();
+                        throw new Error(errData.message || 'فشل الرفع');
+                    }
+                } catch (error) {
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ خطأ: ' + error.message;
+                }
+            };
+        }
+    </script>
+</body>
+</html>
